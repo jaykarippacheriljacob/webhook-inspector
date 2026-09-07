@@ -74,7 +74,7 @@ footer{margin-top:52px;text-align:center;color:var(--faint);font-size:.82rem;fon
     <p class="lede">How and why the Webhook Inspector is built — every file, its job, its code, and a plain-English read of each line. Made to reread before an interview so you can talk through exactly what you did.</p>
     <div class="meta">
       <span class="chip">9 modules</span><span class="chip">plain-English</span>
-      <span class="chip">glossary</span><span class="chip">run + git steps</span>
+      <span class="chip">glossary</span><span class="chip">macOS test steps</span><span class="chip">run + git</span>
     </div>
   </header>
 
@@ -608,6 +608,23 @@ def dashboard():
     </ol>
     <p class="note">Every file has one job, and <code>main.py</code> is the map. The dashboard is a <i>client</i> of your own API — backend and frontend talking over HTTP, which is the whole point of the project.</p>
   </section>
+
+  <section class="card" id="run"><h2>Run &amp; test it — macOS, step by step</h2><p class="note">Everything runs in the Terminal, from inside your <code>webhook-inspector</code> folder. Each step says exactly what you should see.</p><p class="explabel">0 · Check Python 3 is installed</p><pre><code>python3 --version</code></pre><p class="note"><b>See:</b> something like <code>Python 3.11+</code>. If it says “command not found”, run <code>xcode-select --install</code>, finish the popup, then try again.</p><p class="explabel">1 · One-time setup — make the sandbox &amp; install libraries</p><pre><code>python3 -m venv .venv
+source .venv/bin/activate
+pip install fastapi &quot;uvicorn[standard]&quot;</code></pre><p class="note"><b>See:</b> your prompt now starts with <code>(.venv)</code>, and pip installs without red errors. <b>Rule to remember:</b> every new Terminal window needs <code>source .venv/bin/activate</code> before <code>uvicorn</code> works.</p><p class="explabel">2 · Start the server</p><pre><code>uvicorn app.main:app --reload --reload-dir app</code></pre><p class="note"><b>See:</b> <code>Application startup complete.</code> and <code>Uvicorn running on http://127.0.0.1:8000</code>. The <code>--reload-dir app</code> stops it from watching the <code>.venv</code> folder (which otherwise causes an endless “Reloading…” loop).</p><p class="explabel">3 · Open the dashboard</p><p class="note">In your browser, go to <code>http://localhost:8000</code>. <b>See:</b> the dark “Webhook Inspector” page saying “Waiting for the first request…”. Leave it open — it refreshes every 2 seconds.</p><p class="explabel">4 · Send requests (a second Terminal; curl needs no venv)</p><pre><code>curl -X POST http://localhost:8000/webhook -H &quot;Content-Type: application/json&quot; -d &#x27;{&quot;event&quot;:&quot;order.created&quot;,&quot;id&quot;:42}&#x27;
+curl &quot;http://localhost:8000/webhook?source=n8n&amp;test=1&quot;
+curl http://localhost:8000/requests</code></pre><p class="note"><b>See:</b> each command returns JSON, and a card appears on the dashboard within 2s — green for POST, blue for GET. The GET one shows its query as <code>{"source":"n8n","test":"1"}</code>.</p><p class="explabel">5 · Watch the status codes (the <code>-i</code> flag shows them)</p><pre><code>curl -i -X POST http://localhost:8000/webhook -d &#x27;{}&#x27;      # expect 201 Created
+curl -i http://localhost:8000/requests/nope           # expect 404 Not Found
+# copy a real id from /requests, then:
+curl -i -X DELETE http://localhost:8000/requests/PUT_ID_HERE   # expect 204 No Content</code></pre><p class="note"><b>See:</b> the first line of each reply — <code>HTTP/1.1 201 Created</code>, <code>404 Not Found</code>, <code>204 No Content</code> (204 deliberately has no body).</p><p class="explabel">6 · Idempotency — the “no duplicates” trick</p><pre><code>curl -X POST http://localhost:8000/webhook -H &quot;Idempotency-Key: abc-123&quot; -d &#x27;{&quot;charge&quot;:&quot;once&quot;}&#x27;
+# now run the exact same line a second time</code></pre><p class="note"><b>See:</b> the first reply has <code>"captured": true</code>; the second has <code>"idempotent_replay": true</code> with the <i>same</i> id — and only ONE card on the dashboard. That is the “a webhook fired twice” problem, solved.</p><p class="explabel">7 · Rate limiting → 429 (optional)</p><pre><code># stop the server with Ctrl+C, then start it with a low limit:
+RATE_LIMIT=5 uvicorn app.main:app
+# in another terminal, fire 8 quick requests:
+for i in $(seq 1 8); do curl -s -o /dev/null -w &quot;%{http_code}\n&quot; -X POST localhost:8000/webhook -d &#x27;{}&#x27;; done</code></pre><p class="note"><b>See:</b> the first five print <code>201</code>, then <code>429</code> once you cross the limit.</p><p class="explabel">8 · Auth — 401 vs 403 (optional)</p><pre><code># stop the server, then require a token:
+API_TOKEN=secret123 uvicorn app.main:app
+curl -i -X POST localhost:8000/webhook -d &#x27;{}&#x27;                                   # 401 — no token
+curl -i -X POST localhost:8000/webhook -H &quot;Authorization: Bearer wrong&quot; -d &#x27;{}&#x27;     # 403 — wrong token
+curl -i -X POST localhost:8000/webhook -H &quot;Authorization: Bearer secret123&quot; -d &#x27;{}&#x27; # 201 — correct</code></pre><p class="note"><b>See:</b> <code>401</code> → <code>403</code> → <code>201</code>. And on the dashboard, the Authorization header shows as <code>Bearer secre…(masked)</code> — the secret is never stored.</p><p class="explabel">9 · Stop the server</p><p class="note">Press <code>Ctrl+C</code>. <b>See:</b> <code>Application shutdown complete.</code></p><p class="explabel">If something goes wrong</p><ul class="exp"><li><code>command not found: pip / uvicorn</code> → the venv isn't active in this terminal. Run <code>source .venv/bin/activate</code> (the prompt should show <code>(.venv)</code>).</li><li><code>command not found: python3</code> → install it with <code>xcode-select --install</code>.</li><li>endless “Reloading…” → add <code>--reload-dir app</code>, or drop <code>--reload</code> entirely.</li><li><code>Address already in use</code> → port 8000 is busy; use another: <code>uvicorn app.main:app --port 8001</code>.</li></ul></section>
 
   <section class="card">
     <h2>Glossary — the terms to know cold</h2>
