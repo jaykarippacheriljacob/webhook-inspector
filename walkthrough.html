@@ -1,0 +1,643 @@
+<title>The Inspector, Line by Line</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+:root{
+  --bg:#eef1f4;--surface:#fff;--surface-2:#f4f6f8;--raise:#0f1720;--raise-ink:#e6edf3;
+  --ink:#16212b;--soft:#4c5a67;--faint:#77848f;--line:#d7dde3;--line-soft:#e7ebef;
+  --accent:#0b7d8c;--accent-ink:#075662;--accent-soft:#dcf0f2;--keep:#a9670a;--keep-soft:#f6ecd9;
+  --shadow:0 1px 2px rgba(16,33,43,.05),0 6px 20px rgba(16,33,43,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1319;--surface:#151d26;--surface-2:#1b242e;--raise:#0b1016;--raise-ink:#e7edf3;
+  --ink:#e7edf2;--soft:#a6b6c3;--faint:#78899a;--line:#28333e;--line-soft:#212b34;
+  --accent:#37c4d6;--accent-ink:#8fe3ee;--accent-soft:#0f2f37;--keep:#e2a850;--keep-soft:#32270f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1319;--surface:#151d26;--surface-2:#1b242e;--raise:#0b1016;--raise-ink:#e7edf3;
+  --ink:#e7edf2;--soft:#a6b6c3;--faint:#78899a;--line:#28333e;--line-soft:#212b34;
+  --accent:#37c4d6;--accent-ink:#8fe3ee;--accent-soft:#0f2f37;--keep:#e2a850;--keep-soft:#32270f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px) 100px;}
+.mast{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:clamp(22px,3vw,34px);box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.mast::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,var(--accent),#255fa6,#a9670a);}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:6px 0 12px;font-weight:600;}
+h1{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:clamp(1.8rem,5vw,2.7rem);line-height:1.05;margin:0 0 .3em;letter-spacing:-.01em;text-wrap:balance;}
+.lede{font-size:1.04rem;color:var(--soft);margin:0;max-width:62ch;}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:.73rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--soft);background:var(--surface-2);}
+h2{letter-spacing:-.01em;}
+.card{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:22px 24px;box-shadow:var(--shadow);margin-top:22px;}
+.card h2{margin:0 0 12px;font-size:1.2rem;}
+.tree{background:var(--raise);color:var(--raise-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:.82rem;line-height:1.6;white-space:pre;margin:0;}
+.note{color:var(--soft);font-size:.95rem;margin:14px 0 0;}
+.toc{margin-top:22px;}
+.toc h2{font-family:"IBM Plex Mono",monospace;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;color:var(--soft);margin:0 0 10px;}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;}
+.toc a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:.84rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);}
+.toc a:hover{border-color:var(--accent);color:var(--accent-ink);}
+.tn{background:var(--accent-soft);color:var(--accent-ink);border-radius:5px;padding:1px 8px;font-weight:600;}
+.file{margin-top:44px;}
+.file-head{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:8px;}
+.fnum{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.82rem;color:var(--accent);white-space:nowrap;}
+.file-head h2{margin:0;font-size:1.3rem;font-family:"IBM Plex Mono",monospace;}
+.role,.why{margin:12px 0 0;color:var(--ink);}
+.why{color:var(--soft);}
+.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);padding:2px 7px;border-radius:5px;margin-right:8px;vertical-align:middle;font-weight:600;}
+.tag.alt{color:var(--soft);background:var(--surface-2);}
+pre{background:var(--raise);color:var(--raise-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:16px 0;}
+pre code{font-family:"IBM Plex Mono",monospace;font-size:.8rem;line-height:1.6;white-space:pre;}
+.explabel{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);font-weight:600;margin:16px 0 4px;}
+ul.exp{margin:6px 0 0;padding-left:20px;}
+ul.exp li{margin:7px 0;}
+:not(pre)>code{font-family:"IBM Plex Mono",monospace;font-size:.85em;background:var(--surface-2);border:1px solid var(--line-soft);padding:.04em .38em;border-radius:5px;color:var(--accent-ink);}
+.keep{margin:16px 0 0;padding:12px 16px;background:var(--keep-soft);border-left:3px solid var(--keep);border-radius:0 8px 8px 0;font-size:.95rem;}
+.keepmark{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--keep);font-weight:700;margin-right:8px;}
+.flow{margin-top:44px;}
+.flow ol{padding-left:20px;} .flow li{margin:8px 0;}
+dl.glossary{display:grid;gap:0;margin:8px 0 0;}
+.term{display:grid;grid-template-columns:190px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-soft);}
+.term:last-child{border-bottom:none;}
+dt{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);font-size:.86rem;}
+dd{margin:0;color:var(--soft);font-size:.94rem;}
+@media(max-width:560px){.term{grid-template-columns:1fr;gap:4px;}}
+footer{margin-top:52px;text-align:center;color:var(--faint);font-size:.82rem;font-family:"IBM Plex Mono",monospace;}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="eyebrow">Project Walkthrough · FastAPI · for interview prep</div>
+    <h1>The Inspector, Line by Line</h1>
+    <p class="lede">How and why the Webhook Inspector is built — every file, its job, its code, and a plain-English read of each line. Made to reread before an interview so you can talk through exactly what you did.</p>
+    <div class="meta">
+      <span class="chip">9 modules</span><span class="chip">plain-English</span>
+      <span class="chip">glossary</span><span class="chip">run + git steps</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>The structure</h2>
+    <pre class="tree">webhook-inspector/
+├── app/
+│   ├── __init__.py        marks &quot;app&quot; as a package
+│   ├── config.py          settings from environment variables
+│   ├── storage.py         in-memory store (ring buffer + idempotency cache)
+│   ├── rate_limit.py      sliding-window rate limiter
+│   ├── capture.py         turns a Request into a saveable record
+│   ├── security.py        bearer-token auth (401 vs 403)
+│   ├── dashboard.py       the live HTML page
+│   └── routers/
+│       ├── __init__.py    marks &quot;routers&quot; as a package
+│       ├── webhook.py     the /webhook endpoint
+│       └── inspect.py     the /requests routes + /health
+├── requirements.txt
+├── Procfile
+├── render.yaml
+├── .gitignore
+└── README.md</pre>
+    <p class="note"><b>The idea behind the split:</b> each file has <i>one job</i>. Settings live in <code>config</code>; storing lives in <code>storage</code>; the HTTP rules (rate limit, auth, capture) each get their own file; and the routes (<code>routers/</code>) just wire those pieces together. That's what says “I know separation of concerns.” You start it with <code>uvicorn app.main:app</code> (note the <code>app.</code> prefix) because the code lives in the <code>app/</code> package.</p>
+  </div>
+
+  <nav class="toc card">
+    <h2>The files, in build order</h2>
+    <ol><li><a href="#f1"><span class="tn">1</span> app/config.py</a></li>
+<li><a href="#f2"><span class="tn">2</span> app/storage.py</a></li>
+<li><a href="#f3"><span class="tn">3</span> app/rate_limit.py</a></li>
+<li><a href="#f4"><span class="tn">4</span> app/capture.py</a></li>
+<li><a href="#f5"><span class="tn">5</span> app/security.py</a></li>
+<li><a href="#f6"><span class="tn">6</span> app/dashboard.py</a></li>
+<li><a href="#f7"><span class="tn">7</span> app/routers/webhook.py</a></li>
+<li><a href="#f8"><span class="tn">8</span> app/routers/inspect.py</a></li>
+<li><a href="#f9"><span class="tn">9</span> app/main.py</a></li></ol>
+  </nav>
+
+  
+    <section class="file" id="f1">
+      <div class="file-head">
+        <span class="fnum">File 1 / 9</span>
+        <h2>app/config.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The one place that reads environment variables. Every other file imports its settings from here instead of calling <code>os.getenv</code> itself.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> Centralised config is a real-world pattern — change a default in one spot, and you can see at a glance everything the app is tunable on.</p>
+      <pre><code>&quot;&quot;&quot;
+Configuration for the whole app, read once from environment variables.
+
+Keeping this in one place means no other file calls os.getenv — they import
+from here. Everything is optional and has a sensible default.
+&quot;&quot;&quot;
+import os
+
+# If set, /webhook requires  Authorization: Bearer &lt;API_TOKEN&gt;
+API_TOKEN = os.getenv(&quot;API_TOKEN&quot;)
+
+# If set, DELETE /requests/{id} requires  Authorization: Bearer &lt;ADMIN_TOKEN&gt;
+ADMIN_TOKEN = os.getenv(&quot;ADMIN_TOKEN&quot;)
+
+# Max /webhook requests per minute, per client IP, before a 429
+RATE_LIMIT = int(os.getenv(&quot;RATE_LIMIT&quot;, &quot;60&quot;))
+
+# How many captured requests to keep in memory (a ring buffer)
+MAX_STORED = int(os.getenv(&quot;MAX_STORED&quot;, &quot;100&quot;))
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><code>os.getenv("NAME", "default")</code> means “look for a setting called NAME set outside the code; if it isn't there, use this default.” That's how you change behaviour when you deploy without editing code.</li>
+<li><b>API_TOKEN</b> — an optional password for <code>/webhook</code>. Set it and callers must send it; leave it unset and the endpoint is open.</li>
+<li><b>ADMIN_TOKEN</b> — a second optional password, only for <i>deleting</i> captured requests (a destructive action, so its own key).</li>
+<li><b>RATE_LIMIT</b> — max requests one visitor may send per minute (default 60) before a 429.</li>
+<li><b>MAX_STORED</b> — how many captured requests to keep at once (default 100); the oldest drops off after that.</li>
+<li><code>int(os.getenv("RATE_LIMIT", "60"))</code> — env vars are always text, so we wrap it in <code>int(...)</code> to get a number.</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> The top four are just labelled boxes holding a value; <code>os.getenv</code> decides whether each gets your custom value or the built-in default. (Also create <code>app/__init__.py</code> with a single docstring line — it just marks the folder as a Python package.)</p>
+    </section>
+
+    <section class="file" id="f2">
+      <div class="file-head">
+        <span class="fnum">File 2 / 9</span>
+        <h2>app/storage.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The app's memory — where every captured request is kept, and where the idempotency cache lives.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> “How we store things” is separate from “what the endpoints do.” If you ever swapped the in-memory store for a real database, this is the <i>only</i> file you'd rewrite.</p>
+      <pre><code>&quot;&quot;&quot;
+In-memory storage for captured requests, plus the idempotency cache.
+
+There is no database on purpose: an inspector wants a fresh slate on restart.
+A deque with maxlen is a ring buffer — once it is full, adding a new item
+drops the oldest automatically, so memory can never grow without bound.
+&quot;&quot;&quot;
+from collections import deque
+
+from app.config import MAX_STORED
+
+# Newest request first. maxlen makes it self-trimming.
+requests_log: deque = deque(maxlen=MAX_STORED)
+
+# Idempotency-Key -&gt; the record we returned the first time we saw that key.
+idempotency_cache: dict = {}
+
+
+def add(record: dict) -&gt; None:
+    requests_log.appendleft(record)
+
+
+def all_records(limit: int = 50) -&gt; list:
+    return list(requests_log)[:limit]
+
+
+def find(req_id: str):
+    for record in requests_log:
+        if record[&quot;id&quot;] == req_id:
+            return record
+    return None
+
+
+def remove(req_id: str) -&gt; bool:
+    record = find(req_id)
+    if record is None:
+        return False
+    requests_log.remove(record)
+    return True
+
+
+def count() -&gt; int:
+    return len(requests_log)
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>deque</b> (“deck”) — a list you can add to / remove from at either end, fast. We always add to the front (newest first).</li>
+<li><b>maxlen=MAX_STORED</b> — the ring-buffer trick: cap it at 100 and the oldest falls off automatically. No cleanup code needed.</li>
+<li><b>idempotency_cache = {}</b> — a <b>dictionary</b> (key→value lookup table). Key = the Idempotency-Key header, value = the request we saved for it.</li>
+<li>The five functions are named shortcuts the rest of the app calls: <code>add</code> (put on front), <code>all_records</code> (recent ones), <code>find</code> (by id, or None), <code>remove</code> (delete, returns True/False), <code>count</code>.</li>
+<li><code>-> None</code>, <code>-> list</code>, <code>-> bool</code> are <b>type hints</b> — documentation of what a function returns; they don't change behaviour.</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> Everything about <i>storing</i> is behind simple verbs (add, find, remove). The endpoints never touch the deque directly — that's what makes it easy to change later.</p>
+    </section>
+
+    <section class="file" id="f3">
+      <div class="file-head">
+        <span class="fnum">File 3 / 9</span>
+        <h2>app/rate_limit.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> Stops one visitor from flooding <code>/webhook</code>. Answers a single yes/no: has this IP hit its limit this minute?</p>
+      <p class="why"><span class="tag alt">Why its own file</span> Rate limiting is a self-contained rule with its own little memory; the webhook route just asks <code>is_rate_limited(ip)</code> without caring how it's decided.</p>
+      <pre><code>&quot;&quot;&quot;
+A tiny in-memory sliding-window rate limiter.
+
+For each IP we keep the timestamps of its recent hits. On each call we drop
+timestamps older than 60 seconds; if what remains is already at the limit,
+the caller is limited. Simple, no dependencies — good enough for a demo and
+enough to talk about the idea in an interview.
+&quot;&quot;&quot;
+import time
+from collections import defaultdict
+
+from app.config import RATE_LIMIT
+
+_buckets: dict = defaultdict(list)  # ip -&gt; [timestamps within the last minute]
+
+
+def is_rate_limited(ip: str) -&gt; bool:
+    now = time.time()
+    recent = [t for t in _buckets[ip] if now - t &lt; 60]
+    _buckets[ip] = recent
+    if len(recent) &gt;= RATE_LIMIT:
+        return True
+    recent.append(now)
+    return False
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><code>time.time()</code> — “now” as a number of seconds; later is a bigger number, so you can measure gaps.</li>
+<li><b>defaultdict(list)</b> — a dict that hands you an empty list the first time you look up a key, so <code>_buckets[ip]</code> always works even for a brand-new visitor.</li>
+<li>The leading underscore in <code>_buckets</code> is a convention meaning “private — don't use from outside this file.”</li>
+<li><code>recent = [t for t in _buckets[ip] if now - t < 60]</code> is a <b>list comprehension</b>: keep only timestamps from the last 60 seconds. That's the “sliding window.”</li>
+<li>If the window already holds RATE_LIMIT hits → return True (limited); otherwise record this hit and return False (allowed).</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> Each visitor gets a rolling one-minute window; old hits silently disappear. On True, the webhook route returns a 429.</p>
+    </section>
+
+    <section class="file" id="f4">
+      <div class="file-head">
+        <span class="fnum">File 4 / 9</span>
+        <h2>app/capture.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The heart of the inspector: takes a raw incoming request and turns it into a tidy dictionary — method, path, query, headers, body, plus an id and timestamp.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> “How we read a request” is a reusable skill separate from any one route. The small <code>client_ip</code> helper lives here too.</p>
+      <pre><code>&quot;&quot;&quot;
+Turn an incoming Request into a plain dict we can store and return as JSON.
+
+This is the heart of the &quot;inspector&quot;: it reads the method, path, query,
+headers and body, and stamps each capture with an id and a timestamp. The
+Authorization header is masked so a real secret is never stored or echoed.
+&quot;&quot;&quot;
+import uuid
+from datetime import datetime, timezone
+
+from fastapi import Request
+
+
+def client_ip(request: Request) -&gt; str:
+    &quot;&quot;&quot;Real client IP, honouring a proxy&#x27;s X-Forwarded-For if present.&quot;&quot;&quot;
+    forwarded = request.headers.get(&quot;x-forwarded-for&quot;)
+    if forwarded:
+        return forwarded.split(&quot;,&quot;)[0].strip()
+    return request.client.host if request.client else &quot;unknown&quot;
+
+
+async def capture(request: Request) -&gt; dict:
+    raw = await request.body()
+    try:
+        body = raw.decode(&quot;utf-8&quot;)
+    except UnicodeDecodeError:
+        body = f&quot;&lt;{len(raw)} bytes of binary data&gt;&quot;
+
+    headers = dict(request.headers)
+    if &quot;authorization&quot; in headers:                      # never echo a full secret
+        headers[&quot;authorization&quot;] = headers[&quot;authorization&quot;][:12] + &quot;…(masked)&quot;
+
+    return {
+        &quot;id&quot;: uuid.uuid4().hex[:8],
+        &quot;received_at&quot;: datetime.now(timezone.utc).isoformat(),
+        &quot;method&quot;: request.method,
+        &quot;path&quot;: request.url.path,
+        &quot;query&quot;: dict(request.query_params),
+        &quot;headers&quot;: headers,
+        &quot;body&quot;: body,
+        &quot;client_ip&quot;: client_ip(request),
+    }
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>uuid</b> — <code>uuid.uuid4().hex[:8]</code> makes a random id and takes the first 8 chars (e.g. <code>0825b571</code>) to label each capture.</li>
+<li><b>datetime.now(timezone.utc).isoformat()</b> — “right now, in UTC, as text”. UTC (not local time) keeps timestamps consistent wherever the server runs.</li>
+<li><b>Request</b> — FastAPI's object holding everything about the incoming call.</li>
+<li><b>async def / await</b> — the one new concept. Reading the body can take a moment, so <code>await request.body()</code> means “pause here until it arrives, without freezing the server for others.”</li>
+<li><b>try / except UnicodeDecodeError</b> — try to read the body as text; if it's binary that would error, so we catch it and store a friendly note instead of crashing.</li>
+<li><b>Masking</b> — the <code>authorization</code> header is replaced with its first 12 chars + “…(masked)”, so you can see it was sent without ever storing the real secret.</li>
+<li>The big <code>return {...}</code> builds the final record — a dictionary of label→value pairs — which is what gets stored and shown.</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> Raw request in → clean, safe dictionary out. It stores nothing and decides nothing; it just reads and packages.</p>
+    </section>
+
+    <section class="file" id="f5">
+      <div class="file-head">
+        <span class="fnum">File 5 / 9</span>
+        <h2>app/security.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> One small function that checks a bearer token and decides whether to let the request through. Where the 401-vs-403 distinction lives.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> Auth is a rule more than one route needs (both /webhook and DELETE). Write it once here — one place to change it.</p>
+      <pre><code>&quot;&quot;&quot;
+Bearer-token authentication.
+
+One helper, used by any route that wants protecting. It encodes the
+difference interviewers love to test:
+  - no / malformed credentials  -&gt; 401 Unauthorized  (&quot;who are you?&quot;)
+  - credentials that don&#x27;t match -&gt; 403 Forbidden     (&quot;you can&#x27;t do this&quot;)
+If `expected` is None the check is skipped, so auth is opt-in per deployment.
+&quot;&quot;&quot;
+from typing import Optional
+
+from fastapi import HTTPException
+
+
+def require_token(authorization: Optional[str], expected: Optional[str]) -&gt; None:
+    if not expected:                       # auth disabled for this token
+        return
+    if not authorization or not authorization.startswith(&quot;Bearer &quot;):
+        raise HTTPException(status_code=401, detail=&quot;Missing or malformed Authorization header.&quot;)
+    if authorization.removeprefix(&quot;Bearer &quot;).strip() != expected:
+        raise HTTPException(status_code=403, detail=&quot;Token not accepted for this resource.&quot;)
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>Optional[str]</b> — “either text or nothing (None).” Both inputs can be missing.</li>
+<li><b>HTTPException</b> + <b>raise</b> — <code>raise</code> stops the request immediately and FastAPI sends back that status code; the rest of the route never runs.</li>
+<li>Gate 1 — <code>if not expected: return</code>: if the token isn't configured, auth is off for this route (opt-in).</li>
+<li>Gate 2 — no / malformed Authorization header → <b>401</b> (“who are you?”).</li>
+<li>Gate 3 — well-formed but wrong token → <b>403</b> (“I know you, but you can't”). <code>removeprefix("Bearer ")</code> strips the word to get the token; <code>!=</code> means “not equal.”</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> Great interview line: <b>401 is “I don't know who you are,” 403 is “I know who you are, but you're not allowed.”</b> This tiny file proves you understand authentication vs. authorization.</p>
+    </section>
+
+    <section class="file" id="f6">
+      <div class="file-head">
+        <span class="fnum">File 6 / 9</span>
+        <h2>app/dashboard.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> Holds the HTML for the live page at <code>/</code>. In Python terms it's just one big text string; the live part is the small JavaScript inside it.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> A wall of HTML doesn't belong mixed with route logic. Parking it here keeps main.py tiny.</p>
+      <pre><code>&quot;&quot;&quot;The live dashboard page, served at / by main.py.&quot;&quot;&quot;
+
+DASHBOARD_HTML = &quot;&quot;&quot;&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;color-scheme&quot; content=&quot;light dark&quot;&gt;
+&lt;title&gt;Webhook Inspector&lt;/title&gt;
+&lt;style&gt;
+  :root{--bg:#0f1720;--card:#18222e;--line:#26333f;--ink:#e6edf3;--soft:#93a3b2;--accent:#37c4d6;--ok:#54cc8d;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  h1{font-size:18px;margin:0}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(84,204,141,.15)}
+  .hint{color:var(--soft);font-size:12.5px}
+  .hint code{color:var(--accent);background:#0c1219;padding:1px 6px;border-radius:5px}
+  main{max-width:900px;margin:0 auto;padding:20px 24px}
+  .empty{color:var(--soft);text-align:center;padding:60px 0}
+  .req{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+  .req-top{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .m{font-weight:700;padding:2px 8px;border-radius:5px;font-size:12px}
+  .m.POST{background:#123324;color:var(--ok)} .m.GET{background:#122a3a;color:#6ea9e8}
+  .m.DELETE{background:#341613;color:#f0776c} .m.PUT,.m.PATCH{background:#32270f;color:#e2a850}
+  .path{color:var(--ink)} .id{color:var(--soft);margin-left:auto;font-size:12px}
+  .time{color:var(--soft);font-size:12px}
+  pre{margin:0;padding:12px 14px;white-space:pre-wrap;word-break:break-word;font-size:12.5px;color:var(--soft)}
+  .k{color:var(--accent)}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;header&gt;
+  &lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;
+  &lt;h1&gt;Webhook Inspector&lt;/h1&gt;
+  &lt;span class=&quot;hint&quot;&gt;Send a request to &lt;code&gt;POST /webhook&lt;/code&gt; and it appears below · polling every 2s&lt;/span&gt;
+&lt;/header&gt;
+&lt;main&gt;&lt;div id=&quot;list&quot;&gt;&lt;div class=&quot;empty&quot;&gt;Waiting for the first request…&lt;/div&gt;&lt;/div&gt;&lt;/main&gt;
+&lt;script&gt;
+const esc = s =&gt; String(s).replace(/[&amp;&lt;&gt;]/g, c =&gt; ({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;}[c]));
+async function tick(){
+  try{
+    const r = await fetch(&#x27;/requests?limit=25&#x27;);
+    const {requests} = await r.json();
+    const el = document.getElementById(&#x27;list&#x27;);
+    if(!requests.length){ el.innerHTML = &#x27;&lt;div class=&quot;empty&quot;&gt;Waiting for the first request…&lt;/div&gt;&#x27;; return; }
+    el.innerHTML = requests.map(q =&gt; `
+      &lt;div class=&quot;req&quot;&gt;
+        &lt;div class=&quot;req-top&quot;&gt;
+          &lt;span class=&quot;m ${esc(q.method)}&quot;&gt;${esc(q.method)}&lt;/span&gt;
+          &lt;span class=&quot;path&quot;&gt;${esc(q.path)}&lt;/span&gt;
+          &lt;span class=&quot;time&quot;&gt;${esc(q.received_at)}&lt;/span&gt;
+          &lt;span class=&quot;id&quot;&gt;${esc(q.id)}&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;pre&gt;&lt;span class=&quot;k&quot;&gt;headers&lt;/span&gt; ${esc(JSON.stringify(q.headers))}
+&lt;span class=&quot;k&quot;&gt;query&lt;/span&gt;   ${esc(JSON.stringify(q.query))}
+&lt;span class=&quot;k&quot;&gt;body&lt;/span&gt;    ${esc(q.body || &#x27;(empty)&#x27;)}&lt;/pre&gt;
+      &lt;/div&gt;`).join(&#x27;&#x27;);
+  }catch(e){ /* ignore transient errors */ }
+}
+tick(); setInterval(tick, 2000);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+&quot;&quot;&quot;
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>DASHBOARD_HTML = """..."""</b> — triple quotes let a string span many lines, so the whole page is one variable. The <code>&lt;style&gt;</code> block is ordinary CSS (the colours).</li>
+<li>The <b>&lt;script&gt;</b> at the bottom is JavaScript running in the browser: <code>fetch('/requests')</code> calls your own API (the client half of HTTP — the Fetch API from the interview paper).</li>
+<li><code>await r.json()</code> parses the reply; <code>requests.map(...)</code> builds a block of HTML per capture; <code>el.innerHTML = ...</code> paints them.</li>
+<li><b>esc(...)</b> escapes <code>&lt; &gt; &amp;</code> so a request body can't inject HTML into the page (a small real security habit).</li>
+<li><b>setInterval(tick, 2000)</b> re-runs every 2 seconds — that's the “live” feel (simple polling; could be upgraded to Server-Sent Events).</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> The dashboard is a <i>client</i> of your own API: Python serves data at /requests; this page fetches it every 2s and paints it. Backend and frontend over HTTP — the whole point, in one file.</p>
+    </section>
+
+    <section class="file" id="f7">
+      <div class="file-head">
+        <span class="fnum">File 7 / 9</span>
+        <h2>app/routers/webhook.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The /webhook endpoint — the one you point real webhooks at. Notice how short it is: it calls the pieces from Files 2–5 in the right order.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> A “router” is a group of related routes. Keeping /webhook separate from the /requests routes means each file is about one part of your API.</p>
+      <pre><code>&quot;&quot;&quot;
+The /webhook receiver — the endpoint you point real webhooks at.
+
+It accepts any common method, then runs three gates in order before storing:
+  1. rate limit   -&gt; 429
+  2. auth         -&gt; 401 / 403
+  3. idempotency  -&gt; replay the first result instead of duplicating
+and finally returns 201 Created with an echo of what it captured.
+&quot;&quot;&quot;
+from typing import Optional
+
+from fastapi import APIRouter, Request, Header
+from fastapi.responses import JSONResponse
+
+from app import config, storage
+from app.capture import capture, client_ip
+from app.rate_limit import is_rate_limited
+from app.security import require_token
+
+router = APIRouter()
+
+
+@router.api_route(&quot;/webhook&quot;, methods=[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;])
+async def receive_webhook(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    idempotency_key: Optional[str] = Header(default=None),
+):
+    # 1) rate limiting
+    if is_rate_limited(client_ip(request)):
+        return JSONResponse(
+            status_code=429,
+            content={&quot;error&quot;: &quot;rate_limited&quot;,
+                     &quot;detail&quot;: f&quot;Limit is {config.RATE_LIMIT} requests per minute.&quot;},
+            headers={&quot;Retry-After&quot;: &quot;60&quot;},
+        )
+
+    # 2) authentication (only if API_TOKEN is configured)
+    require_token(authorization, config.API_TOKEN)
+
+    # 3) idempotency: a repeated key returns the first result, never a duplicate
+    if idempotency_key and idempotency_key in storage.idempotency_cache:
+        prior = storage.idempotency_cache[idempotency_key]
+        return JSONResponse(status_code=200, content={&quot;idempotent_replay&quot;: True, **prior})
+
+    record = await capture(request)
+    storage.add(record)
+    if idempotency_key:
+        storage.idempotency_cache[idempotency_key] = record
+
+    return JSONResponse(status_code=201, content={&quot;captured&quot;: True, **record})
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>APIRouter()</b> — a mini-app you attach routes to; main.py “includes” it later. How FastAPI splits routes across files.</li>
+<li><b>@router.api_route("/webhook", methods=[...])</b> — a <b>decorator</b> registering this function as the handler; <code>api_route</code> lets one handler accept several methods (what makes it a true inspector).</li>
+<li><b>authorization: Optional[str] = Header(default=None)</b> — FastAPI reads the header off the request and hands it in as a parameter; default None if missing. Same for Idempotency-Key.</li>
+<li><b>JSONResponse(status_code=..., content=..., headers=...)</b> — lets you set a specific status code, body and extra headers (used for 429, 200 replay, 201).</li>
+<li><b>{"captured": True, **record}</b> — <code>**record</code> is dictionary unpacking: spread all the record's pairs into a new dict alongside the flag.</li>
+<li>Flow (order matters): 1) rate limit → 429; 2) auth → 401/403; 3) idempotency → 200 replay; else capture + store + <b>201 Created</b>.</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> A good route is <i>thin</i>: it decides order and status codes but delegates the real work to the small files you already wrote.</p>
+    </section>
+
+    <section class="file" id="f8">
+      <div class="file-head">
+        <span class="fnum">File 8 / 9</span>
+        <h2>app/routers/inspect.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The endpoints for reading and managing captures — list, fetch one, delete one, plus /health. The dashboard calls /requests here.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> These routes are all about inspecting stored data — a different job from receiving webhooks — so they get their own router.</p>
+      <pre><code>&quot;&quot;&quot;
+Read and manage what /webhook captured, plus a health check.
+
+GET routes only read (safe + idempotent); DELETE mutates and returns 204.
+DELETE is treated as privileged: if ADMIN_TOKEN is set it must be presented.
+&quot;&quot;&quot;
+from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException, Response
+
+from app import config, storage
+from app.security import require_token
+
+router = APIRouter()
+
+
+@router.get(&quot;/requests&quot;)
+def list_requests(limit: int = 50):
+    return {&quot;count&quot;: storage.count(), &quot;requests&quot;: storage.all_records(limit)}
+
+
+@router.get(&quot;/requests/{req_id}&quot;)
+def get_request(req_id: str):
+    record = storage.find(req_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=&quot;No captured request with that id.&quot;)
+    return record
+
+
+@router.delete(&quot;/requests/{req_id}&quot;, status_code=204)
+def delete_request(req_id: str, authorization: Optional[str] = Header(default=None)):
+    require_token(authorization, config.ADMIN_TOKEN)
+    if not storage.remove(req_id):
+        raise HTTPException(status_code=404, detail=&quot;No captured request with that id.&quot;)
+    return Response(status_code=204)
+
+
+@router.get(&quot;/health&quot;)
+def health():
+    return {&quot;status&quot;: &quot;ok&quot;, &quot;stored&quot;: storage.count()}
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>@router.get(...) / @router.delete(...)</b> — single-method versions of api_route; cleaner when a route is just one method.</li>
+<li><b>def</b> (not async) — these don't await anything (just read memory), so they don't need to be async. FastAPI handles both.</li>
+<li><b>limit: int = 50</b> — a <b>query parameter</b>: an argument with a default; FastAPI reads it from the URL (<code>/requests?limit=10</code>) and converts it to int.</li>
+<li><b>{req_id}</b> in the path + <b>req_id: str</b> — a <b>path parameter</b>: whatever's in that URL slot arrives as the argument. How you address one item.</li>
+<li><b>Response(status_code=204)</b> — 204 No Content = “success, nothing to send back,” the right reply to a delete.</li>
+<li>Routes: <code>list_requests</code> (count + records, read-only), <code>get_request</code> (find or 404), <code>delete_request</code> (auth → remove → 204, or 404), <code>health</code> (an “am I alive?” ping deploy platforms use).</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> Mirrors real REST design: a collection (/requests) and items within it (/requests/{id}), with the method choosing the action — GET reads, DELETE removes.</p>
+    </section>
+
+    <section class="file" id="f9">
+      <div class="file-head">
+        <span class="fnum">File 9 / 9</span>
+        <h2>app/main.py</h2>
+      </div>
+      <p class="role"><span class="tag">What it does</span> The entry point uvicorn runs. Deliberately tiny: it creates the app, attaches the two routers, and serves the dashboard at /.</p>
+      <p class="why"><span class="tag alt">Why its own file</span> The shortness is the point — main.py reads like a table of contents; a reviewer sees the whole shape of the app in ten lines.</p>
+      <pre><code>&quot;&quot;&quot;
+Application entry point.
+
+This file stays tiny on purpose: it creates the FastAPI app, mounts the two
+route groups, and serves the dashboard at /. Run it with:
+
+    uvicorn app.main:app --reload
+&quot;&quot;&quot;
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+
+from app.dashboard import DASHBOARD_HTML
+from app.routers import inspect, webhook
+
+app = FastAPI(title=&quot;Webhook Inspector&quot;, version=&quot;1.0.0&quot;)
+
+app.include_router(webhook.router)
+app.include_router(inspect.router)
+
+
+@app.get(&quot;/&quot;, response_class=HTMLResponse)
+def dashboard():
+    return DASHBOARD_HTML
+</code></pre>
+      <p class="explabel">Line by line</p>
+      <ul class="exp"><li><b>app = FastAPI(...)</b> — the application object the whole project is built around; the run command points at it (<code>app.main:app</code> = the app variable inside app/main.py).</li>
+<li><b>app.include_router(webhook.router)</b> — the payoff of splitting routes: each router is plugged in with one line. New feature later = new router file + one more include line; you never touch the existing ones.</li>
+<li><b>@app.get("/", response_class=HTMLResponse)</b> — the homepage. <code>response_class=HTMLResponse</code> tells FastAPI “this is a web page, not JSON,” so the browser renders it instead of showing raw text.</li>
+<li><b>def dashboard(): return DASHBOARD_HTML</b> — a plain function (no waiting). Its name is just a label; the <code>@app.get("/")</code> decorator is what maps it to the URL. It returns the page string from File 6.</li></ul>
+      <p class="keep"><span class="keepmark">Keep this</span> main.py <i>wires</i>, it doesn't <i>work</i>. Config, storage, the HTTP rules and the routes each live in their own file; main.py just connects them.</p>
+    </section>
+
+  <section class="flow card">
+    <h2>How they connect</h2>
+    <ol>
+      <li>A request to <code>/webhook</code> flows: <b>main.py</b> routes it → <b>routers/webhook.py</b> handles it → which calls <b>rate_limit</b> → <b>security</b> → <b>capture</b> → <b>storage</b>, using values from <b>config</b>.</li>
+      <li>Meanwhile the browser loads <b>main.py</b>'s <code>/</code> → gets <b>dashboard.py</b>'s page → which polls <b>routers/inspect.py</b>'s <code>/requests</code> every 2s → reading from <b>storage</b>.</li>
+    </ol>
+    <p class="note">Every file has one job, and <code>main.py</code> is the map. The dashboard is a <i>client</i> of your own API — backend and frontend talking over HTTP, which is the whole point of the project.</p>
+  </section>
+
+  <section class="card">
+    <h2>Glossary — the terms to know cold</h2>
+    <dl class="glossary"><div class="term"><dt>async / await</dt><dd>Marks work that waits on something external (like reading a request body) so the server can serve others meanwhile. You <code>await</code> the slow thing.</dd></div>
+<div class="term"><dt>decorator (@)</dt><dd>A line just above a function that changes or registers it. <code>@app.get("/")</code> registers the function as the handler for that route.</dd></div>
+<div class="term"><dt>APIRouter</dt><dd>A group of routes in its own file, plugged into the app with <code>include_router</code>. Keeps related endpoints together.</dd></div>
+<div class="term"><dt>Header(default=None)</dt><dd>Tells FastAPI to pull a named HTTP header off the request and pass it into your function as an argument.</dd></div>
+<div class="term"><dt>path parameter</dt><dd>A slot in the URL, like <code>/requests/{id}</code>, delivered to your function as an argument. Addresses one specific item.</dd></div>
+<div class="term"><dt>query parameter</dt><dd>A value after <code>?</code> in the URL, like <code>?limit=10</code>. A function argument with a default; FastAPI reads and type-converts it.</dd></div>
+<div class="term"><dt>HTTPException / raise</dt><dd><code>raise HTTPException(status_code=...)</code> stops the request and returns that error code immediately.</dd></div>
+<div class="term"><dt>deque</dt><dd>A double-ended list; with <code>maxlen</code> it's a self-trimming ring buffer (old items drop off).</dd></div>
+<div class="term"><dt>defaultdict(list)</dt><dd>A dictionary that auto-creates an empty list for any new key, so lookups never fail.</dd></div>
+<div class="term"><dt>dict unpacking (**)</dt><dd><code>{**a, "x": 1}</code> spreads all of dict <code>a</code>'s pairs into a new dict.</dd></div>
+<div class="term"><dt>type hint (-> str)</dt><dd>A note saying what a value/return is. Documentation for humans and editors; doesn't change behaviour.</dd></div>
+<div class="term"><dt>JSONResponse / Response</dt><dd>Return objects that let you set the exact status code, body and headers of a reply.</dd></div></dl>
+  </section>
+
+  <section class="card">
+    <h2>Run it &amp; push it</h2>
+    <pre><code># run locally
+cd webhook-inspector
+pip install -r requirements.txt
+uvicorn app.main:app --reload        # note the app. prefix
+
+# push to GitHub
+git init &amp;&amp; git add .
+git commit -m "Webhook Inspector: modular FastAPI HTTP request inspector"
+gh repo create webhook-inspector --public --source=. --push</code></pre>
+    <p class="note">Because the code lives in <code>app/</code>, the start command is <code>app.main:app</code> everywhere — update the <code>Procfile</code>, <code>render.yaml</code>, and the README quickstart to match.</p>
+  </section>
+
+  <footer>Companion to “The HTTP Interview” · reread before interviews · you built this</footer>
+</div>
